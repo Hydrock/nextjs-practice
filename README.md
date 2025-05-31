@@ -183,11 +183,12 @@ export default async function UsersPage() {
 
 ```js
 interface Params {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export default async function UserPage({ params }: Params) {
-  const res = await fetch(`https://jsonplaceholder.typicode.com/users/${params.id}`);
+  const { id } = await params;
+  const res = await fetch(`https://jsonplaceholder.typicode.com/users/${id}`);
   const user = await res.json();
 
   return (
@@ -198,6 +199,7 @@ export default async function UserPage({ params }: Params) {
     </main>
   );
 }
+
 ```
 
 🧠 Пояснение:
@@ -208,42 +210,42 @@ export default async function UserPage({ params }: Params) {
 🧪 8. SSG (generateStaticParams)
 
 Цель урока
-• Создать список постов /blog
-• Сгенерировать отдельные страницы для каждого поста /blog/[slug]
+• Создать список записей /notes
+• Сгенерировать отдельные страницы для каждого поста /notes/[slug]
 • Использовать generateStaticParams() для SSG
 
 ```sh
 app/
- └── blog/
-     ├── page.tsx           ← список постов
+ └── notes/
+     ├── page.tsx           ← список записей
      └── [slug]/
-         └── page.tsx       ← одна статья
+         └── page.tsx       ← одна запись
 ```
 
-`lib/posts.ts`
+`lib/notes.ts`
 
 ```js
-export const posts = [
+export const notes = [
   { slug: 'hello-next', title: 'Привет, Next.js', content: 'Это первая статья.' },
   { slug: 'about-ssg', title: 'Что такое SSG?', content: 'SSG — это Static Site Generation.' },
   { slug: 'next-advanced', title: 'Продвинутый Next.js', content: 'Хаки, фичи и ISR.' },
 ];
 ```
 
-`app/blog/page.tsx` — список статей
+`app/notes/page.tsx` — список статей
 
 ```js
 import Link from 'next/link';
-import { posts } from '@/lib/posts';
+import { notes } from '@/lib/notes';
 
-export default function BlogPage() {
+export default function NotesPage() {
   return (
     <main>
-      <h1>Блог</h1>
+      <h1>Записи</h1>
       <ul>
-        {posts.map(post => (
-          <li key={post.slug}>
-            <Link href={`/blog/${post.slug}`}>{post.title}</Link>
+        {notes.map(note => (
+          <li key={note.slug}>
+            <Link href={`/notes/${note.slug}`}>{note.title}</Link>
           </li>
         ))}
       </ul>
@@ -252,23 +254,23 @@ export default function BlogPage() {
 }
 ```
 
-`app/blog/[slug]/page.tsx` — отдельная статья
+`app/notes/[slug]/page.tsx` — отдельная запись
 
 ```js
-import { posts } from '@/lib/posts';
+import { notes } from '@/lib/notes';
 
 interface Props {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
 /**
  * Если в файле есть функция generateStaticParams, то она запускается на этапе builds проекта и генерирует 
  * массив будущих статических параметров. 
- * Параметры - это значения переданные в url - /posts/[id]
+ * Параметры - это значения переданные в url - /notes/[id]
  * А тут как будто мы формируем массив всех введенных параметров заранее для генерации статических страниц
  */
 export async function generateStaticParams() {
-  return posts.map(post => ({ slug: post.slug }));
+  return notes.map(note => ({ slug: note.slug }));
 }
 
 /**
@@ -277,17 +279,102 @@ export async function generateStaticParams() {
  * Как буд-то мы несколько раз открывает url с разными параметрами
  * Далее эта функция генерирует статические страницы и в будущем если параметры введенные пользователем в url совпадут с сгенерированными на этапе build - то пользователю отдастся статика. Если же параметр будет другой то отработает SSR
  */
-export default function BlogPostPage({ params }: Props) {
-  const post = posts.find(p => p.slug === params.slug);
+export default async function NotesPostPage({ params }: Props) {
+  const { slug } = await params;
+  const note = notes.find(p => p.slug === slug);
 
-  if (!post) return <p>Пост не найден</p>;
+  if (!note) return <p>Запись не найдена</p>;
 
   return (
     <main>
-      <h1>{post.title}</h1>
-      <p>{post.content}</p>
+      <h1>{note.title}</h1>
+      <p>{note.content}</p>
     </main>
   );
 }
 ```
 
+🧪 9. Incremental Static Regeneration (ISR)
+
+🔁 Что такое ISR?
+
+ISR = Incremental Static Regeneration — это способ, при котором Next.js:
+
+1. создаёт HTML при сборке (как в SSG),
+2. а потом автоматически пересоздаёт его в фоне, если страница устарела (по времени).
+
+🔍 Как это работает:
+
+🔨 При next build
+• Next вызывает generateStaticParams() (если есть)
+• Генерирует HTML-страницы для всех params.id
+• Эти страницы становятся статическими
+
+⏱ После публикации
+
+• Пользователь открывает страницу /posts/1 → получает кешированный HTML
+• Next.js отслеживает время с момента генерации
+• Если страница открыта через 60+ секунд, фоновый процесс:
+• перезапрашивает данные
+• перегенерирует HTML
+• сохраняет его в кеш
+• Следующий пользователь получит уже обновлённый HTML
+
+```sh
+app/
+ └── blog/
+     └── [id]/
+         └── page.tsx       ← одна статья
+```
+
+`app/blog/[id]/page.tsx`
+
+```js
+interface Post {
+  id: string
+  title: string
+  content: string
+}
+ 
+// Next.js will invalidate the cache when a
+// request comes in, at most once every 60 seconds.
+export const revalidate = 60
+ 
+// We'll prerender only the params from `generateStaticParams` at build time.
+// If a request comes in for a path that hasn't been generated,
+// Next.js will server-render the page on-demand.
+export const dynamicParams = true // or false, to 404 on unknown paths
+ 
+/**
+ * При build приложения мы получаем массив всех статей - столько статических страниц сгенерирует nextjs
+ */
+export async function generateStaticParams() {
+  const posts: Post[] = await fetch('https://api.vercel.app/blog').then((res) =>
+    res.json()
+  )
+  return posts.map((post) => ({
+    id: String(post.id),
+  }))
+}
+ 
+ 
+/**
+ * Данная страница отрендерится в момент билда приложения запрашивая статьи для статического редеринга.
+ */
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id } = await params
+  const post: Post = await fetch(`https://api.vercel.app/blog/${id}`).then(
+    (res) => res.json()
+  )
+  return (
+    <main>
+      <h1>{post.title}</h1>
+      <p>{post.content}</p>
+    </main>
+  )
+}
+```
