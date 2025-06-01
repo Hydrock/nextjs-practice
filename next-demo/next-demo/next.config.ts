@@ -12,22 +12,22 @@ const nextConfig = {
 
       config.plugins.push(
         new ModuleFederationPlugin({
-          name: 'nextjs_host',
-          filename: 'static/chunks/remoteEntry.js',
-          remotes: {
-            [process.env.SCOPE as string]: `${process.env.NEXT_PUBLIC_SCOPE}@${process.env.NEXT_PUBLIC_REMOTE_ADDRESS}`,
-          },
-          exposes: {},
+          // name: 'nextjs_host',
+          // filename: 'static/chunks/remoteEntry.js',
+          // remotes: {
+          //   [process.env.SCOPE as string]: `${process.env.NEXT_PUBLIC_SCOPE}@${process.env.NEXT_PUBLIC_REMOTE_ADDRESS}`,
+          // },
+          // exposes: {},
           // shared: {
           //   react: {
           //     // singleton: true,
           //     // requiredVersion: false,
-          //     eager: false,
+          //     eager: true,
           //   },
           //   'react-dom': {
           //     // singleton: true,
           //     // requiredVersion: false,
-          //     eager: false,
+          //     eager: true,
           //   },
           // },
         })
