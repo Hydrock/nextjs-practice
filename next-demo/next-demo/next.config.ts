@@ -15,20 +15,19 @@ const nextConfig = {
           name: 'nextjs_host',
           filename: 'static/chunks/remoteEntry.js',
           remotes: {
-            // ONA_WIDGETS: 'ONA_WIDGETS@https://mbdev.alfabank.ru/ona-widgets/assets/remoteEntry.js',
-            [process.env.SCOPE as string]: `${process.env.SCOPE}@${process.env.REMOTE_ADDRESS}`,
+            [process.env.SCOPE as string]: `${process.env.NEXT_PUBLIC_SCOPE}@${process.env.NEXT_PUBLIC_REMOTE_ADDRESS}`,
           },
           exposes: {},
           // shared: {
           //   react: {
           //     // singleton: true,
           //     // requiredVersion: false,
-          //     // eager: true,
+          //     eager: false,
           //   },
           //   'react-dom': {
           //     // singleton: true,
           //     // requiredVersion: false,
-          //     // eager: true,
+          //     eager: false,
           //   },
           // },
         })

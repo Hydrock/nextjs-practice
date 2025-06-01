@@ -8,5 +8,10 @@ const RemoteWidget = dynamic(() => import('./RemoteWidget'), {
 });
 
 export default function RemoteWrapper() {
-  return <RemoteWidget />;
+  return (
+    <div>
+      Тут будет загружен виджет...
+      <RemoteWidget />
+    </div>
+  );
 }

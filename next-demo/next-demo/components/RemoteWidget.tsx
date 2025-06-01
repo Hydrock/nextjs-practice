@@ -42,11 +42,14 @@ function injectScript(url: string, scope: string): Promise<void> {
 const RemoteWidget = () => {
   const [Comp, setComp] = useState<React.ComponentType | null>(null);
 
+  // INFO: при первом вызове useEffect container равен undefined
+  // но при втором он успевает инициализироваться
+  // но вот что заставляет запустить useEffect второй раз - не знаю
   useEffect(() => {
     const load = async () => {
-      const remoteUrl = 'https://mbdev.alfabank.ru/ona-widgets/assets/remoteEntry.js';
-      const scope = 'ONA_WIDGETS';
-      const module = './BootstrapV1';
+      const remoteUrl = process.env.NEXT_PUBLIC_REMOTE_ADDRESS as string;
+      const scope = process.env.NEXT_PUBLIC_SCOPE as string;
+      const module = process.env.NEXT_PUBLIC_WIDGET_NAME as string;
 
       await injectScript(remoteUrl, scope);
 
